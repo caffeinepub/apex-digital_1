@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 
 export interface ICPStats {
   status: "OPERATIONAL" | "DEGRADED" | "LOADING";
-  nodeCount: number | null;
+  canisterCount: number | null;
   subnetCount: number | null;
   blocksFinalized: number | null;
   icpPrice: number | null;
@@ -16,59 +16,70 @@ async function fetchJSON(url: string) {
   return res.json();
 }
 
+function lastValue(pairs: [number, string][] | undefined): number | null {
+  if (!Array.isArray(pairs) || pairs.length === 0) return null;
+  const last = pairs[pairs.length - 1];
+  if (!Array.isArray(last) || last.length < 2) return null;
+  const v = Number.parseFloat(last[1]);
+  return Number.isFinite(v) ? v : null;
+}
+
 export function useICPStats(refreshMs = 30_000): ICPStats {
   const [stats, setStats] = useState<ICPStats>({
     status: "LOADING",
-    nodeCount: null,
+    canisterCount: null,
     subnetCount: null,
     blocksFinalized: null,
     icpPrice: null,
   });
 
   const load = useCallback(async () => {
-    try {
-      const [nodes, subnets, metrics] = await Promise.allSettled([
-        fetchJSON(`${BASE}/node-count`),
-        fetchJSON(`${BASE}/subnet-count`),
-        fetchJSON(`${BASE}/metrics`),
+    const [canistersRes, subnetsRes, blocksRes, priceRes] =
+      await Promise.allSettled([
+        fetchJSON(`${BASE}/metrics/registered-canisters-count`),
+        fetchJSON(`${BASE}/metrics/ic-subnet-total`),
+        fetchJSON(`${BASE}/metrics/block-count`),
+        fetchJSON(`${BASE}/icp-usd-rate`),
       ]);
 
-      const nodeCount =
-        nodes.status === "fulfilled" ? (nodes.value?.count ?? null) : null;
-      const subnetCount =
-        subnets.status === "fulfilled" ? (subnets.value?.count ?? null) : null;
+    const canisterCount =
+      canistersRes.status === "fulfilled"
+        ? (() => {
+            const running = lastValue(canistersRes.value?.running_canisters);
+            const stopped = lastValue(canistersRes.value?.stopped_canisters);
+            if (running === null && stopped === null) return null;
+            return (running ?? 0) + (stopped ?? 0);
+          })()
+        : null;
 
-      let blocksFinalized: number | null = null;
-      let icpPrice: number | null = null;
-      if (metrics.status === "fulfilled") {
-        const m = metrics.value;
-        if (Array.isArray(m?.block_height_per_subnet)) {
-          blocksFinalized = m.block_height_per_subnet.reduce(
-            (sum: number, s: { block_height: number }) =>
-              sum + (s.block_height ?? 0),
-            0,
-          );
-        } else if (typeof m?.block_height === "number") {
-          blocksFinalized = m.block_height;
-        }
-        if (typeof m?.icp_price === "number") {
-          icpPrice = m.icp_price;
-        }
-      }
+    const subnetCount =
+      subnetsRes.status === "fulfilled"
+        ? lastValue(subnetsRes.value?.ic_subnet_total)
+        : null;
 
-      setStats({
-        status:
-          nodeCount !== null || subnetCount !== null
-            ? "OPERATIONAL"
-            : "DEGRADED",
-        nodeCount,
-        subnetCount,
-        blocksFinalized,
-        icpPrice,
-      });
-    } catch {
-      setStats((prev) => ({ ...prev, status: "DEGRADED" }));
-    }
+    const blocksFinalized =
+      blocksRes.status === "fulfilled"
+        ? lastValue(blocksRes.value?.block_count)
+        : null;
+
+    const icpPrice =
+      priceRes.status === "fulfilled"
+        ? lastValue(priceRes.value?.icp_usd_rate)
+        : null;
+
+    const anyLoaded =
+      canisterCount !== null ||
+      subnetCount !== null ||
+      blocksFinalized !== null ||
+      icpPrice !== null;
+
+    setStats({
+      status: anyLoaded ? "OPERATIONAL" : "DEGRADED",
+      canisterCount,
+      subnetCount,
+      blocksFinalized,
+      icpPrice,
+    });
   }, []);
 
   useEffect(() => {

@@ -28,15 +28,18 @@ export default function HeroSection() {
       `ICP NETWORK: ${
         icpStats.status === "LOADING" ? "CONNECTING..." : icpStats.status
       }`,
-      icpStats.nodeCount !== null
-        ? `NODES: ${formatLarge(icpStats.nodeCount)}`
-        : "NODES: ...",
+      icpStats.canisterCount !== null
+        ? `TOTAL CANISTERS: ${formatLarge(icpStats.canisterCount)}`
+        : "TOTAL CANISTERS: ...",
       icpStats.subnetCount !== null
         ? `SUBNETS: ${formatLarge(icpStats.subnetCount)}`
         : "SUBNETS: ...",
       icpStats.blocksFinalized !== null
         ? `BLOCKS FINALIZED: ${formatLarge(icpStats.blocksFinalized)}`
         : "BLOCKS FINALIZED: ...",
+      icpStats.icpPrice !== null
+        ? `ICP PRICE: $${icpStats.icpPrice.toFixed(2)}`
+        : "ICP PRICE: ...",
     ],
     [icpStats],
   );
@@ -167,9 +170,15 @@ export default function HeroSection() {
             </span>
           )}
 
-          {icpStats.nodeCount !== null && (
+          {icpStats.canisterCount !== null && (
             <span className="font-mono-label text-[10px] text-muted-foreground/70 border border-[oklch(0.22_0_0)] px-3 py-1 rounded-full">
-              NODES: {formatLarge(icpStats.nodeCount)}
+              CANISTERS: {formatLarge(icpStats.canisterCount)}
+            </span>
+          )}
+
+          {icpStats.icpPrice !== null && (
+            <span className="font-mono-label text-[10px] text-muted-foreground/70 border border-[oklch(0.22_0_0)] px-3 py-1 rounded-full">
+              ICP: ${icpStats.icpPrice.toFixed(2)}
             </span>
           )}
         </motion.div>

@@ -7,7 +7,6 @@ import Navigation from "./components/Navigation";
 import PricingSection from "./components/PricingSection";
 import TechnologySection from "./components/TechnologySection";
 import WhatWeDoSection from "./components/WhatWeDoSection";
-import WhyChangesEverythingSection from "./components/WhyChangesEverythingSection";
 import WhyUsSection from "./components/WhyUsSection";
 
 export default function App() {
@@ -17,11 +16,10 @@ export default function App() {
       <Navigation />
       <main>
         <HeroSection />
-        <WhyChangesEverythingSection />
+        <DifferentiatorSection />
         <WhatWeDoSection />
         <WhyUsSection />
         <PricingSection />
-        <DifferentiatorSection />
         <TechnologySection />
         <ContactSection />
       </main>

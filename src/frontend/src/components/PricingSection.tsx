@@ -24,7 +24,7 @@ const plans = [
     period: "",
     description: "For businesses that need more than just a website.",
     features: [
-      "1 to 6 pages",
+      "3 to 6 pages",
       "Custom design",
       "Forms with data capture",
       "Light backend functionality",
@@ -35,7 +35,7 @@ const plans = [
   },
   {
     name: "PRO",
-    price: "$7,500+",
+    price: "$2,500",
     period: "",
     description: "Full system, not just a website.",
     features: [
