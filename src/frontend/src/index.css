@@ -1,0 +1,144 @@
+@import url("https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700;800&family=Inter:wght@400;500;600&display=swap");
+
+@font-face {
+  font-family: "GeneralSans";
+  src: url("/assets/fonts/GeneralSans.woff2") format("woff2");
+  font-weight: 200 700;
+  font-display: swap;
+}
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --radius: 0.25rem;
+    --background: 0.08 0 0;
+    --foreground: 0.94 0 0;
+    --card: 0.12 0 0;
+    --card-foreground: 0.94 0 0;
+    --popover: 0.15 0 0;
+    --popover-foreground: 0.94 0 0;
+    --primary: 0.65 0.22 37;
+    --primary-foreground: 0.98 0 0;
+    --secondary: 0.18 0 0;
+    --secondary-foreground: 0.94 0 0;
+    --muted: 0.16 0 0;
+    --muted-foreground: 0.56 0 0;
+    --accent: 0.65 0.22 37;
+    --accent-foreground: 0.98 0 0;
+    --destructive: 0.577 0.245 27.325;
+    --destructive-foreground: 0.985 0 0;
+    --border: 0.22 0 0;
+    --input: 0.22 0 0;
+    --ring: 0.65 0.22 37;
+    --chart-1: 0.65 0.22 37;
+    --chart-2: 0.6 0.118 184.704;
+    --chart-3: 0.398 0.07 227.392;
+    --chart-4: 0.828 0.189 84.429;
+    --chart-5: 0.769 0.188 70.08;
+    --sidebar: 0.1 0 0;
+    --sidebar-foreground: 0.94 0 0;
+    --sidebar-primary: 0.65 0.22 37;
+    --sidebar-primary-foreground: 0.98 0 0;
+    --sidebar-accent: 0.16 0 0;
+    --sidebar-accent-foreground: 0.94 0 0;
+    --sidebar-border: 0.22 0 0;
+    --sidebar-ring: 0.65 0.22 37;
+    /* Custom orange token */
+    --orange: oklch(0.65 0.22 37);
+    --orange-glow: oklch(0.65 0.22 37 / 0.3);
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-family: "Inter", "GeneralSans", sans-serif;
+    background-color: oklch(0.08 0 0);
+    color: oklch(0.94 0 0);
+  }
+}
+
+@layer utilities {
+  .font-display {
+    font-family: "Space Grotesk", sans-serif;
+    letter-spacing: -0.02em;
+  }
+
+  .font-mono-label {
+    font-family: "Space Grotesk", monospace;
+    letter-spacing: 0.12em;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+  }
+
+  .text-orange {
+    color: var(--orange);
+  }
+
+  .bg-orange {
+    background-color: var(--orange);
+  }
+
+  .border-orange {
+    border-color: var(--orange);
+  }
+
+  .glow-orange {
+    box-shadow: 0 0 30px var(--orange-glow), 0 0 60px oklch(0.65 0.22 37 / 0.1);
+  }
+
+  .card-hover {
+    transition: transform 0.3s ease, border-color 0.3s ease, box-shadow 0.3s
+      ease;
+  }
+
+  .card-hover:hover {
+    transform: translateY(-6px);
+    border-color: var(--orange) !important;
+    box-shadow: 0 0 30px var(--orange-glow);
+  }
+
+  .ticker-track {
+    display: flex;
+    gap: 4rem;
+    animation: ticker 30s linear infinite;
+    white-space: nowrap;
+  }
+
+  @keyframes ticker {
+    from {
+      transform: translateX(0);
+    }
+    to {
+      transform: translateX(-50%);
+    }
+  }
+
+  .noise-bg::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .dot-grid-bg {
+    background-image: radial-gradient(
+      circle,
+      oklch(0.94 0 0 / 0.05) 1px,
+      transparent 1px
+    );
+    background-size: 40px 40px;
+  }
+}
