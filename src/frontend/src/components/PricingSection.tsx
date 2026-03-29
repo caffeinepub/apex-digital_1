@@ -2,6 +2,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Check } from "lucide-react";
 import { motion } from "motion/react";
+import { useState } from "react";
+import ProjectIntakeModal from "./ProjectIntakeModal";
 
 const plans = [
   {
@@ -15,7 +17,7 @@ const plans = [
       "Contact form",
       "Fast delivery",
     ],
-    cta: "GET STARTED",
+    cta: "START PROJECT",
     highlight: false,
   },
   {
@@ -29,7 +31,7 @@ const plans = [
       "Forms with data capture",
       "Light backend functionality",
     ],
-    cta: "START WITH GROWTH",
+    cta: "START PROJECT",
     highlight: true,
     badge: "MOST POPULAR",
   },
@@ -44,7 +46,7 @@ const plans = [
       "CRM-style backend",
       "Custom workflows",
     ],
-    cta: "START WITH PRO",
+    cta: "START PROJECT",
     highlight: false,
   },
   {
@@ -58,14 +60,20 @@ const plans = [
       "Custom integrations",
       "Full ownership",
     ],
-    cta: "CONTACT US",
+    cta: "REQUEST CONSULTATION",
     highlight: false,
   },
 ];
 
 export default function PricingSection() {
-  const scrollToContact = () => {
-    document.getElementById("contact")?.scrollIntoView({ behavior: "smooth" });
+  const [intakeModalPlan, setIntakeModalPlan] = useState<{
+    name: string;
+    price: string;
+  } | null>(null);
+
+  const openIntakeModal = (planName: string) => {
+    const plan = plans.find((p) => p.name === planName);
+    if (plan) setIntakeModalPlan({ name: plan.name, price: plan.price });
   };
 
   return (
@@ -163,7 +171,7 @@ export default function PricingSection() {
               </ul>
 
               <Button
-                onClick={scrollToContact}
+                onClick={() => openIntakeModal(plan.name)}
                 data-ocid={`pricing.primary_button.${i + 1}`}
                 className={`w-full font-display font-bold text-sm tracking-wider py-6 rounded-none ${
                   plan.highlight
@@ -188,6 +196,14 @@ export default function PricingSection() {
           maintenance, no fragile stack.
         </motion.p>
       </div>
+
+      {intakeModalPlan && (
+        <ProjectIntakeModal
+          planName={intakeModalPlan.name}
+          planPrice={intakeModalPlan.price}
+          onClose={() => setIntakeModalPlan(null)}
+        />
+      )}
     </section>
   );
 }

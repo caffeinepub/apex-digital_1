@@ -2,6 +2,7 @@ import { Button } from "@/components/ui/button";
 import { Menu, X } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useState } from "react";
+import WalletConnect from "./WalletConnect";
 
 const links = [
   { label: "WHAT WE DO", href: "#what-we-do" },
@@ -35,7 +36,6 @@ export default function Navigation() {
   const handleNav = (href: string) => {
     setMenuOpen(false);
     const id = href.slice(1);
-    // Delay scroll to allow mobile menu close animation to complete
     setTimeout(() => {
       document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
     }, 50);
@@ -81,8 +81,9 @@ export default function Navigation() {
           ))}
         </ul>
 
-        {/* CTA */}
-        <div className="hidden md:block">
+        {/* Right side: WalletConnect + CTA */}
+        <div className="hidden md:flex items-center gap-3">
+          <WalletConnect />
           <Button
             onClick={() => handleNav("#contact")}
             data-ocid="nav.primary_button"
@@ -125,7 +126,8 @@ export default function Navigation() {
                   </button>
                 </li>
               ))}
-              <li>
+              <li className="flex flex-col gap-3">
+                <WalletConnect />
                 <Button
                   onClick={() => handleNav("#contact")}
                   className="w-full bg-orange text-white font-display font-bold text-sm rounded-none"

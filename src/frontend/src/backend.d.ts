@@ -13,7 +13,55 @@ export interface Contact {
     message: string;
     timestamp: bigint;
 }
+export interface ProjectSubmission {
+    projectId: string;
+    package_: string;
+    clientName: string;
+    email: string;
+    businessName: string;
+    currentWebsite: string;
+    businessType: string;
+    whatTheyNeed: string;
+    projectDescription: string;
+    numberOfPages: string;
+    needsContactForm: boolean;
+    needsBooking: boolean;
+    needsPaymentIntegration: boolean;
+    needsDashboard: boolean;
+    needsContentWriting: boolean;
+    needsBranding: boolean;
+    inspirationLinks: string;
+    timeline: string;
+    contentReadiness: string;
+    additionalNotes: string;
+    paymentStatus: string;
+    transactionHash: string;
+    timestamp: bigint;
+}
 export interface backendInterface {
     getContacts(): Promise<Array<Contact>>;
     submitContact(name: string, email: string, message: string): Promise<void>;
+    submitProject(
+        package_: string,
+        clientName: string,
+        email: string,
+        businessName: string,
+        currentWebsite: string,
+        businessType: string,
+        whatTheyNeed: string,
+        projectDescription: string,
+        numberOfPages: string,
+        needsContactForm: boolean,
+        needsBooking: boolean,
+        needsPaymentIntegration: boolean,
+        needsDashboard: boolean,
+        needsContentWriting: boolean,
+        needsBranding: boolean,
+        inspirationLinks: string,
+        timeline: string,
+        contentReadiness: string,
+        additionalNotes: string
+    ): Promise<string>;
+    getProjects(): Promise<Array<ProjectSubmission>>;
+    updatePaymentStatus(projectId: string, status: string, txHash: string): Promise<boolean>;
 }

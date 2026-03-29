@@ -6,9 +6,9 @@ import { motion } from "motion/react";
 import { useEffect, useMemo, useRef } from "react";
 
 const words = [
-  { text: "NO HOSTING.", orange: false },
-  { text: "NO PLUGINS.", orange: false },
-  { text: "NO BREAKING.", orange: true },
+  { text: "YOUR WEBSITE.", orange: false },
+  { text: "BUILT BETTER.", orange: false },
+  { text: "ON THE INTERNET COMPUTER.", orange: true },
 ];
 
 function formatLarge(n: number | null): string {
@@ -212,8 +212,8 @@ export default function HeroSection() {
           transition={{ duration: 0.6, delay: 0.8 }}
           className="text-muted-foreground text-base md:text-lg max-w-xl mb-10 font-body leading-relaxed"
         >
-          Websites and client systems built fully on the Internet Computer.
-          Secure, stable, and built to last.
+          A new kind of internet where your website runs without servers,
+          plugins, or ongoing maintenance.
         </motion.p>
 
         <motion.div
