@@ -1,3 +1,6 @@
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   Table,
   TableBody,
@@ -7,428 +10,453 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ChevronDown, ChevronRight } from "lucide-react";
+import {
+  AlertCircle,
+  ChevronDown,
+  ChevronUp,
+  Loader2,
+  Lock,
+  LogOut,
+  RefreshCw,
+} from "lucide-react";
+import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useState } from "react";
-import type {
-  Contact,
-  ProjectSubmission,
-  backendInterface,
-} from "../backend.d";
-import { useActor } from "../hooks/useActor";
+import type { Contact, ProjectSubmission } from "../backend";
+import { createActorWithConfig } from "../config";
 
 const ADMIN_PASSWORD = "apex2026admin";
-const FETCH_TIMEOUT_MS = 6000;
-
-function withTimeout<T>(
-  promise: Promise<T>,
-  ms: number,
-  fallback: T,
-): Promise<T> {
-  return Promise.race([
-    promise,
-    new Promise<T>((resolve) => setTimeout(() => resolve(fallback), ms)),
-  ]);
-}
 
 function formatTimestamp(ts: bigint): string {
-  try {
-    const ms = Number(ts / 1_000_000n);
-    return new Date(ms).toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-  } catch {
-    return "Unknown";
-  }
+  const ms = Number(ts / 1_000_000n);
+  return new Date(ms).toLocaleDateString("en-US", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 }
 
-function statusColor(status: string) {
-  if (status === "paid") return "text-green-400";
-  if (status === "pending") return "text-yellow-400";
-  return "text-[oklch(0.45_0_0)]";
+function paymentBadgeClass(status: string): string {
+  if (status === "paid")
+    return "bg-green-400/20 text-green-400 border-green-400/30";
+  if (status === "pending")
+    return "bg-yellow-400/20 text-yellow-400 border-yellow-400/30";
+  return "bg-zinc-700/50 text-zinc-400 border-zinc-600/30";
 }
 
-function ProjectRow({ project }: { project: ProjectSubmission }) {
-  const [expanded, setExpanded] = useState(false);
-
-  const details: { label: string; value: string }[] = [
-    { label: "Business Name", value: project.businessName },
-    { label: "Current Website", value: project.currentWebsite || "N/A" },
-    { label: "Business Type", value: project.businessType || "N/A" },
-    { label: "What They Need", value: project.whatTheyNeed },
-    {
-      label: "Project Description",
-      value: project.projectDescription || "N/A",
-    },
-    { label: "Number of Pages", value: project.numberOfPages || "N/A" },
-    { label: "Contact Form", value: project.needsContactForm ? "Yes" : "No" },
-    { label: "Booking", value: project.needsBooking ? "Yes" : "No" },
-    {
-      label: "Payment Integration",
-      value: project.needsPaymentIntegration ? "Yes" : "No",
-    },
-    { label: "Dashboard", value: project.needsDashboard ? "Yes" : "No" },
-    {
-      label: "Content Writing",
-      value: project.needsContentWriting ? "Yes" : "No",
-    },
-    { label: "Branding", value: project.needsBranding ? "Yes" : "No" },
-    { label: "Inspiration Links", value: project.inspirationLinks || "N/A" },
-    { label: "Timeline", value: project.timeline || "N/A" },
-    { label: "Content Readiness", value: project.contentReadiness || "N/A" },
-    { label: "Additional Notes", value: project.additionalNotes || "N/A" },
-    { label: "Transaction Hash", value: project.transactionHash || "N/A" },
-  ];
-
-  return (
-    <>
-      <TableRow
-        className="border-[oklch(0.16_0_0)] hover:bg-[oklch(0.13_0_0)] cursor-pointer transition-colors"
-        onClick={() => setExpanded((v) => !v)}
-        data-ocid="admin.projects.row"
-      >
-        <TableCell className="font-mono-label text-xs text-orange">
-          <div className="flex items-center gap-2">
-            {expanded ? (
-              <ChevronDown className="w-3 h-3" />
-            ) : (
-              <ChevronRight className="w-3 h-3" />
-            )}
-            {project.projectId}
-          </div>
-        </TableCell>
-        <TableCell className="font-mono-label text-xs text-[oklch(0.6_0_0)]">
-          {project.package_}
-        </TableCell>
-        <TableCell className="font-body text-sm text-foreground">
-          {project.clientName}
-        </TableCell>
-        <TableCell className="font-body text-sm text-[oklch(0.6_0_0)]">
-          {project.email}
-        </TableCell>
-        <TableCell className="font-body text-sm text-[oklch(0.6_0_0)]">
-          {project.businessName}
-        </TableCell>
-        <TableCell>
-          <span
-            className={`font-mono-label text-[10px] tracking-wider ${statusColor(
-              project.paymentStatus,
-            )}`}
-          >
-            {project.paymentStatus.toUpperCase() || "PENDING"}
-          </span>
-        </TableCell>
-        <TableCell className="font-mono-label text-[10px] text-[oklch(0.4_0_0)]">
-          {formatTimestamp(project.timestamp)}
-        </TableCell>
-      </TableRow>
-      {expanded && (
-        <TableRow className="border-[oklch(0.16_0_0)] bg-[oklch(0.09_0_0)]">
-          <TableCell colSpan={7} className="py-4 px-8">
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-              {details.map((d) => (
-                <div key={d.label}>
-                  <p className="font-mono-label text-[9px] tracking-widest text-[oklch(0.4_0_0)] mb-0.5">
-                    {d.label.toUpperCase()}
-                  </p>
-                  <p className="font-body text-xs text-[oklch(0.65_0_0)] break-words">
-                    {d.value}
-                  </p>
-                </div>
-              ))}
-            </div>
-          </TableCell>
-        </TableRow>
-      )}
-    </>
-  );
-}
+type Screen = "login" | "loading" | "dashboard" | "error";
 
 export default function AdminPanel() {
-  const [authed, setAuthed] = useState(false);
-  const [passwordInput, setPasswordInput] = useState("");
+  const [screen, setScreen] = useState<Screen>("login");
+  const [password, setPassword] = useState("");
   const [passwordError, setPasswordError] = useState("");
   const [projects, setProjects] = useState<ProjectSubmission[]>([]);
   const [contacts, setContacts] = useState<Contact[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [errorMsg, setErrorMsg] = useState("");
+  const [expandedProject, setExpandedProject] = useState<string | null>(null);
 
-  const { actor, isFetching } = useActor();
+  async function fetchData() {
+    setScreen("loading");
+    setErrorMsg("");
+    try {
+      const actor = await createActorWithConfig();
+      const [projectsData, contactsData] = await Promise.all([
+        actor.getProjects(),
+        actor.getContacts(),
+      ]);
+      setProjects(projectsData);
+      setContacts(contactsData);
+      setScreen("dashboard");
+    } catch (e: unknown) {
+      setErrorMsg(
+        e instanceof Error
+          ? e.message
+          : "Failed to load data from the network.",
+      );
+      setScreen("error");
+    }
+  }
 
-  const handleLogin = (e: React.FormEvent) => {
+  function handleLogin(e: React.FormEvent) {
     e.preventDefault();
-    if (passwordInput === ADMIN_PASSWORD) {
-      setAuthed(true);
-      setError(null);
+    if (password === ADMIN_PASSWORD) {
+      setPasswordError("");
+      fetchData();
     } else {
-      setPasswordError("Incorrect password.");
+      setPasswordError("Incorrect password. Try again.");
     }
-  };
+  }
 
-  useEffect(() => {
-    if (!authed) return;
-    // Actor still initializing — wait for it
-    if (isFetching) return;
-    // Actor failed to load
-    if (!actor) {
-      setLoading(false);
-      setError("Could not connect to backend.");
-      return;
-    }
+  function handleSignOut() {
+    setScreen("login");
+    setPassword("");
+    setProjects([]);
+    setContacts([]);
+    setExpandedProject(null);
+  }
 
-    const backend = actor as unknown as backendInterface;
-    setLoading(true);
-    setError(null);
-
-    withTimeout(
-      Promise.all([backend.getProjects(), backend.getContacts()]),
-      FETCH_TIMEOUT_MS,
-      [[], []] as [ProjectSubmission[], Contact[]],
-    )
-      .then(([p, c]) => {
-        setProjects(p);
-        setContacts(c);
-      })
-      .catch((err) => {
-        console.error(err);
-        setError("Failed to load data.");
-      })
-      .finally(() => setLoading(false));
-  }, [authed, actor, isFetching]);
-
-  if (!authed) {
+  // --- LOGIN SCREEN ---
+  if (screen === "login") {
     return (
-      <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center px-4">
-        <div className="w-full max-w-sm">
-          <p className="font-mono-label text-orange text-[10px] tracking-widest mb-2">
-            APEX DIGITAL
-          </p>
-          <h1 className="font-display font-bold text-3xl text-foreground mb-8">
-            ADMIN ACCESS
-          </h1>
+      <div
+        className="min-h-screen bg-[#0a0a0a] flex items-center justify-center px-4"
+        data-ocid="admin.page"
+      >
+        <motion.div
+          initial={{ opacity: 0, y: 32 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+          className="w-full max-w-md"
+        >
+          <div className="text-center mb-10">
+            <p className="text-[#FF5C00] text-xs font-mono tracking-[0.25em] uppercase mb-3">
+              APEX DIGITAL
+            </p>
+            <h1 className="text-white font-bold text-4xl tracking-tight font-display">
+              ADMIN ACCESS
+            </h1>
+            <p className="text-zinc-500 text-sm mt-2 font-body">
+              Restricted area. Authorized personnel only.
+            </p>
+          </div>
+
           <form
             onSubmit={handleLogin}
             className="space-y-4"
-            data-ocid="admin.form"
+            data-ocid="admin.modal"
           >
-            <input
-              type="password"
-              placeholder="Password"
-              value={passwordInput}
-              onChange={(e) => {
-                setPasswordInput(e.target.value);
-                setPasswordError("");
-              }}
-              className="w-full bg-[oklch(0.10_0_0)] border border-[oklch(0.22_0_0)] text-foreground font-body text-sm px-4 py-3 outline-none focus:border-orange transition-colors rounded-none placeholder:text-[oklch(0.35_0_0)]"
-              data-ocid="admin.input"
-            />
+            <div className="relative">
+              <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
+              <Input
+                type="password"
+                placeholder="Enter access password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="bg-[#111] border-zinc-700 text-white placeholder:text-zinc-600 h-12 pl-11 rounded-none focus-visible:ring-0 focus-visible:border-[#FF5C00] font-body"
+                data-ocid="admin.input"
+                autoFocus
+              />
+            </div>
+
             {passwordError && (
               <p
-                className="font-mono-label text-[10px] text-red-400"
+                className="text-red-400 text-xs font-mono"
                 data-ocid="admin.error_state"
               >
                 {passwordError}
               </p>
             )}
-            <button
+
+            <Button
               type="submit"
-              className="w-full py-3 bg-orange hover:bg-[oklch(0.6_0.22_37)] text-white font-display font-bold text-sm tracking-widest transition-colors"
+              className="w-full h-12 bg-[#FF5C00] hover:bg-[#e05200] text-white font-display font-bold text-sm tracking-[0.15em] rounded-none border-0"
               data-ocid="admin.submit_button"
             >
               ENTER
-            </button>
+            </Button>
           </form>
-        </div>
+        </motion.div>
       </div>
     );
   }
 
-  // Waiting for actor to initialize after login
-  if (authed && isFetching) {
+  // --- LOADING SCREEN ---
+  if (screen === "loading") {
     return (
-      <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center">
-        <p
-          className="font-mono-label text-[10px] tracking-widest text-orange animate-pulse"
-          data-ocid="admin.loading_state"
-        >
-          CONNECTING...
+      <div
+        className="min-h-screen bg-[#0a0a0a] flex items-center justify-center flex-col gap-4"
+        data-ocid="admin.loading_state"
+      >
+        <Loader2 className="w-8 h-8 text-[#FF5C00] animate-spin" />
+        <p className="text-zinc-400 text-xs font-mono tracking-widest uppercase">
+          CONNECTING TO NETWORK...
         </p>
       </div>
     );
   }
 
+  // --- ERROR SCREEN ---
+  if (screen === "error") {
+    return (
+      <div
+        className="min-h-screen bg-[#0a0a0a] flex items-center justify-center flex-col gap-6 px-4"
+        data-ocid="admin.error_state"
+      >
+        <AlertCircle className="w-10 h-10 text-red-400" />
+        <div className="text-center">
+          <p className="text-white font-display font-bold text-xl mb-2">
+            LOAD FAILED
+          </p>
+          <p className="text-zinc-500 text-sm font-body max-w-xs">{errorMsg}</p>
+        </div>
+        <div className="flex gap-3">
+          <Button
+            onClick={fetchData}
+            className="bg-[#FF5C00] hover:bg-[#e05200] text-white rounded-none font-display font-bold tracking-widest text-sm"
+            data-ocid="admin.primary_button"
+          >
+            <RefreshCw className="w-4 h-4 mr-2" />
+            RETRY
+          </Button>
+          <Button
+            variant="outline"
+            onClick={handleSignOut}
+            className="border-zinc-700 text-zinc-400 hover:text-white rounded-none font-mono text-xs tracking-widest"
+            data-ocid="admin.secondary_button"
+          >
+            SIGN OUT
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  // --- DASHBOARD ---
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-foreground">
-      <div className="border-b border-[oklch(0.14_0_0)] px-8 py-5 flex items-center justify-between">
+    <div
+      className="min-h-screen bg-[#0a0a0a] text-white"
+      data-ocid="admin.panel"
+    >
+      {/* Top bar */}
+      <header className="border-b border-zinc-800 px-6 py-4 flex items-center justify-between">
         <div>
-          <p className="font-mono-label text-orange text-[10px] tracking-widest">
+          <p className="text-[#FF5C00] text-xs font-mono tracking-[0.25em] uppercase">
             APEX DIGITAL
           </p>
-          <h1 className="font-display font-bold text-xl tracking-tight">
+          <h1 className="text-white font-display font-bold text-xl tracking-tight">
             ADMIN PANEL
           </h1>
         </div>
-        <button
-          type="button"
-          onClick={() => setAuthed(false)}
+        <Button
+          variant="ghost"
+          onClick={handleSignOut}
+          className="text-zinc-400 hover:text-white font-mono text-xs tracking-widest"
           data-ocid="admin.secondary_button"
-          className="font-mono-label text-[10px] tracking-widest text-[oklch(0.4_0_0)] hover:text-orange transition-colors"
         >
+          <LogOut className="w-4 h-4 mr-2" />
           SIGN OUT
-        </button>
-      </div>
+        </Button>
+      </header>
 
-      <div className="px-8 py-8">
-        {loading ? (
-          <div
-            className="font-mono-label text-[10px] tracking-widest text-[oklch(0.4_0_0)] py-20 text-center"
-            data-ocid="admin.loading_state"
-          >
-            LOADING...
-          </div>
-        ) : (
-          <>
-            {error && (
-              <p
-                className="font-mono-label text-[10px] tracking-widest text-red-400 mb-6"
-                data-ocid="admin.error_state"
+      <main className="max-w-7xl mx-auto px-6 py-10">
+        <Tabs defaultValue="projects">
+          <TabsList className="bg-[#111] border border-zinc-800 rounded-none mb-8 p-0">
+            <TabsTrigger
+              value="projects"
+              className="rounded-none font-mono text-xs tracking-widest px-6 py-3 data-[state=active]:bg-[#FF5C00] data-[state=active]:text-white text-zinc-400"
+              data-ocid="admin.tab"
+            >
+              PROJECTS ({projects.length})
+            </TabsTrigger>
+            <TabsTrigger
+              value="contacts"
+              className="rounded-none font-mono text-xs tracking-widest px-6 py-3 data-[state=active]:bg-[#FF5C00] data-[state=active]:text-white text-zinc-400"
+              data-ocid="admin.tab"
+            >
+              CONTACTS ({contacts.length})
+            </TabsTrigger>
+          </TabsList>
+
+          {/* Projects Tab */}
+          <TabsContent value="projects">
+            {projects.length === 0 ? (
+              <div
+                className="border border-zinc-800 p-16 text-center"
+                data-ocid="admin.empty_state"
               >
-                {error}
-              </p>
-            )}
-            <Tabs defaultValue="projects" data-ocid="admin.tab">
-              <TabsList className="bg-[oklch(0.12_0_0)] border border-[oklch(0.18_0_0)] rounded-none p-1 mb-8">
-                <TabsTrigger
-                  value="projects"
-                  className="font-mono-label text-xs tracking-widest rounded-none data-[state=active]:bg-orange data-[state=active]:text-white"
-                  data-ocid="admin.projects.tab"
-                >
-                  PROJECTS ({projects.length})
-                </TabsTrigger>
-                <TabsTrigger
-                  value="contacts"
-                  className="font-mono-label text-xs tracking-widest rounded-none data-[state=active]:bg-orange data-[state=active]:text-white"
-                  data-ocid="admin.contacts.tab"
-                >
-                  CONTACTS ({contacts.length})
-                </TabsTrigger>
-              </TabsList>
-
-              <TabsContent value="projects">
-                {projects.length === 0 ? (
-                  <div
-                    className="text-center py-20 font-mono-label text-[10px] tracking-widest text-[oklch(0.35_0_0)]"
-                    data-ocid="admin.projects.empty_state"
-                  >
-                    NO PROJECTS YET
-                  </div>
-                ) : (
-                  <div
-                    className="border border-[oklch(0.16_0_0)] overflow-x-auto"
-                    data-ocid="admin.projects.table"
-                  >
-                    <Table>
-                      <TableHeader>
-                        <TableRow className="border-[oklch(0.18_0_0)] hover:bg-transparent">
-                          <TableHead className="font-mono-label text-[9px] tracking-widest text-[oklch(0.45_0_0)]">
-                            PROJECT ID
-                          </TableHead>
-                          <TableHead className="font-mono-label text-[9px] tracking-widest text-[oklch(0.45_0_0)]">
-                            PACKAGE
-                          </TableHead>
-                          <TableHead className="font-mono-label text-[9px] tracking-widest text-[oklch(0.45_0_0)]">
-                            NAME
-                          </TableHead>
-                          <TableHead className="font-mono-label text-[9px] tracking-widest text-[oklch(0.45_0_0)]">
-                            EMAIL
-                          </TableHead>
-                          <TableHead className="font-mono-label text-[9px] tracking-widest text-[oklch(0.45_0_0)]">
-                            BUSINESS
-                          </TableHead>
-                          <TableHead className="font-mono-label text-[9px] tracking-widest text-[oklch(0.45_0_0)]">
-                            PAYMENT
-                          </TableHead>
-                          <TableHead className="font-mono-label text-[9px] tracking-widest text-[oklch(0.45_0_0)]">
-                            DATE
-                          </TableHead>
+                <p className="text-zinc-500 font-mono text-xs tracking-widest uppercase">
+                  NO PROJECTS YET
+                </p>
+              </div>
+            ) : (
+              <div className="border border-zinc-800">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="border-zinc-800 hover:bg-transparent">
+                      {[
+                        "PROJECT ID",
+                        "PACKAGE",
+                        "NAME",
+                        "EMAIL",
+                        "BUSINESS",
+                        "PAYMENT",
+                        "DATE",
+                      ].map((h) => (
+                        <TableHead
+                          key={h}
+                          className="text-zinc-500 font-mono text-[10px] tracking-widest uppercase py-3"
+                        >
+                          {h}
+                        </TableHead>
+                      ))}
+                      <TableHead className="w-8" />
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {projects.map((p, idx) => (
+                      <>
+                        <TableRow
+                          key={p.projectId}
+                          className="border-zinc-800 hover:bg-zinc-900/60 cursor-pointer"
+                          onClick={() =>
+                            setExpandedProject(
+                              expandedProject === p.projectId
+                                ? null
+                                : p.projectId,
+                            )
+                          }
+                          data-ocid={`admin.row.item.${idx + 1}`}
+                        >
+                          <TableCell className="font-mono text-[#FF5C00] text-xs">
+                            {p.projectId.substring(0, 8).toUpperCase()}
+                          </TableCell>
+                          <TableCell className="font-mono text-xs text-white uppercase">
+                            {p.package}
+                          </TableCell>
+                          <TableCell className="text-sm text-zinc-300">
+                            {p.clientName}
+                          </TableCell>
+                          <TableCell className="text-sm text-zinc-400">
+                            {p.email}
+                          </TableCell>
+                          <TableCell className="text-sm text-zinc-400">
+                            {p.businessName}
+                          </TableCell>
+                          <TableCell>
+                            <span
+                              className={`text-[10px] font-mono px-2 py-0.5 border uppercase ${paymentBadgeClass(p.paymentStatus)}`}
+                            >
+                              {p.paymentStatus}
+                            </span>
+                          </TableCell>
+                          <TableCell className="text-zinc-500 text-xs font-mono">
+                            {formatTimestamp(p.timestamp)}
+                          </TableCell>
+                          <TableCell>
+                            {expandedProject === p.projectId ? (
+                              <ChevronUp className="w-4 h-4 text-zinc-500" />
+                            ) : (
+                              <ChevronDown className="w-4 h-4 text-zinc-500" />
+                            )}
+                          </TableCell>
                         </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {projects.map((project) => (
-                          <ProjectRow
-                            key={project.projectId}
-                            project={project}
-                          />
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </div>
-                )}
-              </TabsContent>
 
-              <TabsContent value="contacts">
-                {contacts.length === 0 ? (
-                  <div
-                    className="text-center py-20 font-mono-label text-[10px] tracking-widest text-[oklch(0.35_0_0)]"
-                    data-ocid="admin.contacts.empty_state"
-                  >
-                    NO CONTACTS YET
-                  </div>
-                ) : (
-                  <div
-                    className="border border-[oklch(0.16_0_0)] overflow-x-auto"
-                    data-ocid="admin.contacts.table"
-                  >
-                    <Table>
-                      <TableHeader>
-                        <TableRow className="border-[oklch(0.18_0_0)] hover:bg-transparent">
-                          <TableHead className="font-mono-label text-[9px] tracking-widest text-[oklch(0.45_0_0)]">
-                            NAME
-                          </TableHead>
-                          <TableHead className="font-mono-label text-[9px] tracking-widest text-[oklch(0.45_0_0)]">
-                            EMAIL
-                          </TableHead>
-                          <TableHead className="font-mono-label text-[9px] tracking-widest text-[oklch(0.45_0_0)]">
-                            MESSAGE
-                          </TableHead>
-                          <TableHead className="font-mono-label text-[9px] tracking-widest text-[oklch(0.45_0_0)]">
-                            DATE
-                          </TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {contacts.map((contact) => (
+                        {expandedProject === p.projectId && (
                           <TableRow
-                            key={contact.email + String(contact.timestamp)}
-                            className="border-[oklch(0.16_0_0)] hover:bg-[oklch(0.13_0_0)]"
-                            data-ocid="admin.contacts.row"
+                            key={`${p.projectId}-detail`}
+                            className="border-zinc-800 bg-zinc-900/40"
                           >
-                            <TableCell className="font-body text-sm text-foreground">
-                              {contact.name}
-                            </TableCell>
-                            <TableCell className="font-body text-sm text-[oklch(0.6_0_0)]">
-                              {contact.email}
-                            </TableCell>
-                            <TableCell className="font-body text-sm text-[oklch(0.55_0_0)] max-w-xs truncate">
-                              {contact.message}
-                            </TableCell>
-                            <TableCell className="font-mono-label text-[10px] text-[oklch(0.4_0_0)]">
-                              {formatTimestamp(contact.timestamp)}
+                            <TableCell colSpan={8} className="py-6 px-6">
+                              <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
+                                {[
+                                  ["Business Type", p.businessType],
+                                  ["What They Need", p.whatTheyNeed],
+                                  ["Description", p.projectDescription],
+                                  ["Pages", p.numberOfPages],
+                                  ["Timeline", p.timeline],
+                                  ["Content Readiness", p.contentReadiness],
+                                  ["Current Website", p.currentWebsite],
+                                  ["Inspiration Links", p.inspirationLinks],
+                                  [
+                                    "Contact Form",
+                                    p.needsContactForm ? "Yes" : "No",
+                                  ],
+                                  ["Booking", p.needsBooking ? "Yes" : "No"],
+                                  [
+                                    "Payment Integration",
+                                    p.needsPaymentIntegration ? "Yes" : "No",
+                                  ],
+                                  [
+                                    "Dashboard/Admin",
+                                    p.needsDashboard ? "Yes" : "No",
+                                  ],
+                                  [
+                                    "Content Writing",
+                                    p.needsContentWriting ? "Yes" : "No",
+                                  ],
+                                  [
+                                    "Branding/Assets",
+                                    p.needsBranding ? "Yes" : "No",
+                                  ],
+                                  ["TX Hash", p.transactionHash || "N/A"],
+                                  ["Additional Notes", p.additionalNotes],
+                                ].map(([label, value]) => (
+                                  <div key={label as string}>
+                                    <p className="text-zinc-500 font-mono text-[10px] uppercase tracking-widest mb-1">
+                                      {label}
+                                    </p>
+                                    <p className="text-zinc-300 font-body text-xs break-words">
+                                      {String(value) || "—"}
+                                    </p>
+                                  </div>
+                                ))}
+                              </div>
                             </TableCell>
                           </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </div>
-                )}
-              </TabsContent>
-            </Tabs>
-          </>
-        )}
-      </div>
+                        )}
+                      </>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+          </TabsContent>
+
+          {/* Contacts Tab */}
+          <TabsContent value="contacts">
+            {contacts.length === 0 ? (
+              <div
+                className="border border-zinc-800 p-16 text-center"
+                data-ocid="admin.empty_state"
+              >
+                <p className="text-zinc-500 font-mono text-xs tracking-widest uppercase">
+                  NO CONTACTS YET
+                </p>
+              </div>
+            ) : (
+              <div className="border border-zinc-800">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="border-zinc-800 hover:bg-transparent">
+                      {["NAME", "EMAIL", "MESSAGE", "DATE"].map((h) => (
+                        <TableHead
+                          key={h}
+                          className="text-zinc-500 font-mono text-[10px] tracking-widest uppercase py-3"
+                        >
+                          {h}
+                        </TableHead>
+                      ))}
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {contacts.map((c, idx) => (
+                      <TableRow
+                        key={`${c.email}-${c.timestamp}`}
+                        className="border-zinc-800 hover:bg-zinc-900/60"
+                        data-ocid={`admin.row.item.${idx + 1}`}
+                      >
+                        <TableCell className="text-sm text-zinc-300 font-body">
+                          {c.name}
+                        </TableCell>
+                        <TableCell className="text-sm text-zinc-400 font-body">
+                          {c.email}
+                        </TableCell>
+                        <TableCell className="text-sm text-zinc-400 font-body max-w-xs">
+                          <p className="truncate">{c.message}</p>
+                        </TableCell>
+                        <TableCell className="text-zinc-500 text-xs font-mono">
+                          {formatTimestamp(c.timestamp)}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+          </TabsContent>
+        </Tabs>
+      </main>
     </div>
   );
 }

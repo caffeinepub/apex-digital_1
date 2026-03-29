@@ -1,8 +1,7 @@
 import { Checkbox } from "@/components/ui/checkbox";
 import { AnimatePresence, motion } from "motion/react";
 import { useState } from "react";
-import type { backendInterface } from "../backend.d";
-import { useActor } from "../hooks/useActor";
+import { createActorWithConfig } from "../config";
 import { useEvmWallet } from "../hooks/useEvmWallet";
 import WalletPickerModal from "./WalletPickerModal";
 
@@ -164,9 +163,6 @@ export default function ProjectIntakeModal({
   const [isPaying, setIsPaying] = useState(false);
   const [payError, setPayError] = useState("");
 
-  const { actor } = useActor();
-  const backend = actor as unknown as backendInterface;
-
   const { address, isConnected, isConnecting, connect } = useEvmWallet();
 
   const isEnterprise = planName === "ENTERPRISE";
@@ -183,35 +179,34 @@ export default function ProjectIntakeModal({
     const localId = `APEX-${Date.now().toString(36).toUpperCase()}`;
     setProjectId(localId);
 
-    // Attempt to persist to backend, but never block the review transition
-    if (backend) {
-      try {
-        const id = await backend.submitProject(
-          planName,
-          form.clientName,
-          form.email,
-          form.businessName,
-          form.currentWebsite,
-          form.businessType,
-          form.whatTheyNeed,
-          form.projectDescription,
-          form.numberOfPages,
-          form.needsContactForm === "yes",
-          form.needsBooking === "yes",
-          form.needsPaymentIntegration === "yes",
-          form.needsDashboard === "yes",
-          form.needsContentWriting === "yes",
-          form.needsBranding === "yes",
-          form.inspirationLinks,
-          form.timeline,
-          form.contentReadiness,
-          form.additionalNotes,
-        );
-        // Use backend-assigned ID if available
-        setProjectId(id);
-      } catch {
-        // Backend unavailable — keep the local ID, still advance to review
-      }
+    // Always attempt to persist to backend — create a fresh actor each time
+    try {
+      const actor = await createActorWithConfig();
+      const id = await actor.submitProject(
+        planName,
+        form.clientName,
+        form.email,
+        form.businessName,
+        form.currentWebsite,
+        form.businessType,
+        form.whatTheyNeed,
+        form.projectDescription,
+        form.numberOfPages,
+        form.needsContactForm === "yes",
+        form.needsBooking === "yes",
+        form.needsPaymentIntegration === "yes",
+        form.needsDashboard === "yes",
+        form.needsContentWriting === "yes",
+        form.needsBranding === "yes",
+        form.inspirationLinks,
+        form.timeline,
+        form.contentReadiness,
+        form.additionalNotes,
+      );
+      // Use backend-assigned ID if available
+      setProjectId(id);
+    } catch {
+      // Backend unavailable — keep the local ID, still advance to review
     }
 
     setIsSubmitting(false);
@@ -231,8 +226,11 @@ export default function ProjectIntakeModal({
         method: "eth_sendTransaction",
         params: [{ from: address, to: OWNER_ETH_ADDRESS, value }],
       });
-      if (backend) {
-        await backend.updatePaymentStatus(projectId, "paid", txHash);
+      try {
+        const actor = await createActorWithConfig();
+        await actor.updatePaymentStatus(projectId, "paid", txHash);
+      } catch {
+        // ignore payment status update failure
       }
       setStep("success");
     } catch (err: any) {

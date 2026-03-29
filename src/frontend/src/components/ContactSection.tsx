@@ -6,6 +6,7 @@ import { Loader2, Mail, MapPin, Send } from "lucide-react";
 import { motion } from "motion/react";
 import { useState } from "react";
 import { toast } from "sonner";
+import { useActor } from "../hooks/useActor";
 import { useSubmitContact } from "../hooks/useQueries";
 
 const contactInfo = [
@@ -71,6 +72,7 @@ export default function ContactSection() {
   const [email, setEmail] = useState("");
   const [message, setMessage] = useState("");
   const [submitted, setSubmitted] = useState(false);
+  const { isFetching: actorLoading } = useActor();
   const { mutate, isPending } = useSubmitContact();
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -190,7 +192,7 @@ export default function ContactSection() {
                       onChange={(e) => setName(e.target.value)}
                       className={inputClass}
                       data-ocid="contact.input"
-                      disabled={isPending}
+                      disabled={isPending || actorLoading}
                     />
                   </div>
 
@@ -209,7 +211,7 @@ export default function ContactSection() {
                       onChange={(e) => setEmail(e.target.value)}
                       className={inputClass}
                       data-ocid="contact.input"
-                      disabled={isPending}
+                      disabled={isPending || actorLoading}
                     />
                   </div>
 
@@ -228,13 +230,13 @@ export default function ContactSection() {
                       rows={5}
                       className={`${inputClass} h-auto resize-none`}
                       data-ocid="contact.textarea"
-                      disabled={isPending}
+                      disabled={isPending || actorLoading}
                     />
                   </div>
 
                   <Button
                     type="submit"
-                    disabled={isPending}
+                    disabled={isPending || actorLoading}
                     data-ocid="contact.submit_button"
                     className="w-full bg-orange hover:bg-[oklch(0.6_0.22_37)] text-white font-display font-bold text-sm tracking-wider py-6 rounded-none border-0 group"
                   >

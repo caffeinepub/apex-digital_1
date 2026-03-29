@@ -89,6 +89,31 @@ export class ExternalBlob {
         return this;
     }
 }
+export interface ProjectSubmission {
+    transactionHash: string;
+    paymentStatus: string;
+    numberOfPages: string;
+    additionalNotes: string;
+    clientName: string;
+    projectDescription: string;
+    package: string;
+    needsBranding: boolean;
+    whatTheyNeed: string;
+    needsBooking: boolean;
+    businessName: string;
+    businessType: string;
+    needsPaymentIntegration: boolean;
+    email: string;
+    currentWebsite: string;
+    needsDashboard: boolean;
+    needsContentWriting: boolean;
+    projectId: string;
+    timestamp: bigint;
+    needsContactForm: boolean;
+    contentReadiness: string;
+    inspirationLinks: string;
+    timeline: string;
+}
 export interface Contact {
     name: string;
     email: string;
@@ -97,7 +122,10 @@ export interface Contact {
 }
 export interface backendInterface {
     getContacts(): Promise<Array<Contact>>;
+    getProjects(): Promise<Array<ProjectSubmission>>;
     submitContact(name: string, email: string, message: string): Promise<void>;
+    submitProject(package: string, clientName: string, email: string, businessName: string, currentWebsite: string, businessType: string, whatTheyNeed: string, projectDescription: string, numberOfPages: string, needsContactForm: boolean, needsBooking: boolean, needsPaymentIntegration: boolean, needsDashboard: boolean, needsContentWriting: boolean, needsBranding: boolean, inspirationLinks: string, timeline: string, contentReadiness: string, additionalNotes: string): Promise<string>;
+    updatePaymentStatus(projectId: string, status: string, txHash: string): Promise<boolean>;
 }
 export class Backend implements backendInterface {
     constructor(private actor: ActorSubclass<_SERVICE>, private _uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, private _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, private processError?: (error: unknown) => never){}
@@ -115,6 +143,20 @@ export class Backend implements backendInterface {
             return result;
         }
     }
+    async getProjects(): Promise<Array<ProjectSubmission>> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.getProjects();
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.getProjects();
+            return result;
+        }
+    }
     async submitContact(arg0: string, arg1: string, arg2: string): Promise<void> {
         if (this.processError) {
             try {
@@ -126,6 +168,34 @@ export class Backend implements backendInterface {
             }
         } else {
             const result = await this.actor.submitContact(arg0, arg1, arg2);
+            return result;
+        }
+    }
+    async submitProject(arg0: string, arg1: string, arg2: string, arg3: string, arg4: string, arg5: string, arg6: string, arg7: string, arg8: string, arg9: boolean, arg10: boolean, arg11: boolean, arg12: boolean, arg13: boolean, arg14: boolean, arg15: string, arg16: string, arg17: string, arg18: string): Promise<string> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.submitProject(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11, arg12, arg13, arg14, arg15, arg16, arg17, arg18);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.submitProject(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11, arg12, arg13, arg14, arg15, arg16, arg17, arg18);
+            return result;
+        }
+    }
+    async updatePaymentStatus(arg0: string, arg1: string, arg2: string): Promise<boolean> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.updatePaymentStatus(arg0, arg1, arg2);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.updatePaymentStatus(arg0, arg1, arg2);
             return result;
         }
     }
