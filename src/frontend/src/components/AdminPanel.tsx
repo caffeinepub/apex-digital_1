@@ -17,6 +17,18 @@ import type {
 import { useActor } from "../hooks/useActor";
 
 const ADMIN_PASSWORD = "apex2026admin";
+const FETCH_TIMEOUT_MS = 6000;
+
+function withTimeout<T>(
+  promise: Promise<T>,
+  ms: number,
+  fallback: T,
+): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<T>((resolve) => setTimeout(() => resolve(fallback), ms)),
+  ]);
+}
 
 function formatTimestamp(ts: bigint): string {
   try {
@@ -144,7 +156,7 @@ export default function AdminPanel() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const { actor } = useActor();
+  const { actor, isFetching } = useActor();
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
@@ -157,10 +169,25 @@ export default function AdminPanel() {
   };
 
   useEffect(() => {
-    if (!authed || !actor) return;
+    if (!authed) return;
+    // Actor still initializing — wait for it
+    if (isFetching) return;
+    // Actor failed to load
+    if (!actor) {
+      setLoading(false);
+      setError("Could not connect to backend.");
+      return;
+    }
+
     const backend = actor as unknown as backendInterface;
     setLoading(true);
-    Promise.all([backend.getProjects(), backend.getContacts()])
+    setError(null);
+
+    withTimeout(
+      Promise.all([backend.getProjects(), backend.getContacts()]),
+      FETCH_TIMEOUT_MS,
+      [[], []] as [ProjectSubmission[], Contact[]],
+    )
       .then(([p, c]) => {
         setProjects(p);
         setContacts(c);
@@ -170,7 +197,7 @@ export default function AdminPanel() {
         setError("Failed to load data.");
       })
       .finally(() => setLoading(false));
-  }, [authed, actor]);
+  }, [authed, actor, isFetching]);
 
   if (!authed) {
     return (
@@ -215,6 +242,20 @@ export default function AdminPanel() {
             </button>
           </form>
         </div>
+      </div>
+    );
+  }
+
+  // Waiting for actor to initialize after login
+  if (authed && isFetching) {
+    return (
+      <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center">
+        <p
+          className="font-mono-label text-[10px] tracking-widest text-orange animate-pulse"
+          data-ocid="admin.loading_state"
+        >
+          CONNECTING...
+        </p>
       </div>
     );
   }
